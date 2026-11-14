@@ -1,0 +1,80 @@
+import { ListView } from "std-widgets.slint";
+
+export struct FileRow { name: string, info: string, date: string, hidden: bool }
+
+global Theme {
+    in-out property <bool> dark: true;
+    out property <color> bg: dark ? #16101F : #F6F2FC;
+    out property <color> surface: dark ? #201830 : #EDE6F8;
+    out property <color> accent: dark ? #B79CF0 : #6B3FC4;
+    out property <color> text: dark ? #EDE7F7 : #1E1530;
+    out property <color> text2: dark ? #A89BC2 : #6A5C85;
+    out property <color> fab-fg: dark ? #16101F : #FFFFFF;
+}
+
+export component MainWindow inherits Window {
+    in property <[FileRow]> rows;
+    background: Theme.bg;
+
+    VerticalLayout {
+        Rectangle {
+            height: 92px;
+            background: Theme.surface;
+            HorizontalLayout {
+                padding-top: 30px;
+                padding-left: 16px;
+                padding-right: 8px;
+                spacing: 12px;
+                Text { text: "<"; font-size: 24px; color: Theme.text; vertical-alignment: center; }
+                VerticalLayout {
+                    alignment: center;
+                    Text { text: "0"; font-size: 20px; font-weight: 700; color: Theme.text; }
+                    Text { text: "/storage/emulated/0"; font-size: 12px; color: Theme.text2; }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Rectangle {
+                    width: 64px;
+                    Text { text: "Ara"; color: Theme.accent; vertical-alignment: center; horizontal-alignment: center; }
+                }
+                Rectangle {
+                    width: 64px;
+                    Text { text: "Tema"; color: Theme.accent; vertical-alignment: center; horizontal-alignment: center; }
+                    TouchArea { clicked => { Theme.dark = !Theme.dark; } }
+                }
+            }
+        }
+        ListView {
+            for r in root.rows : Rectangle {
+                height: 68px;
+                opacity: r.hidden ? 0.6 : 1.0;
+                HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    spacing: 16px;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle { width: 44px; height: 34px; background: Theme.accent; border-radius: 6px; }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        horizontal-stretch: 1;
+                        Text { text: r.name; font-size: 17px; color: Theme.text; overflow: elide; }
+                        Text { text: r.info; font-size: 13px; color: Theme.text2; }
+                    }
+                    Text { text: r.date; font-size: 13px; color: Theme.text2; vertical-alignment: center; }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        x: parent.width - 80px;
+        y: parent.height - 96px;
+        width: 56px;
+        height: 56px;
+        border-radius: 28px;
+        background: Theme.accent;
+        Text { text: "+"; font-size: 30px; color: Theme.fab-fg; horizontal-alignment: center; vertical-alignment: center; }
+        TouchArea { }
+    }
+}

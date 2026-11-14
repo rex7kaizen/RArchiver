@@ -1,0 +1,34 @@
+name: build
+on:
+  workflow_dispatch:
+    inputs:
+      version_dir:
+        description: "Derlenecek sürüm klasörü"
+        default: "v0.0.1-m0"
+  push:
+    branches: [main]
+env:
+  VERSION_DIR: ${{ inputs.version_dir || 'v0.0.1-m0' }}
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ${{ env.VERSION_DIR }}
+      - name: cargo-apk kur
+        run: cargo install cargo-apk --locked
+      - name: APK derle
+        working-directory: ${{ env.VERSION_DIR }}
+        env:
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_LATEST_HOME }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_LATEST_HOME }}
+        run: cargo apk build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rarchiver-apk
+          path: ${{ env.VERSION_DIR }}/target/debug/apk/*.apk
