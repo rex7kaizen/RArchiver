@@ -1,0 +1,6 @@
+[package]
+name = "rarchiver-core"
+version = "0.0.4"
+edition = "2021"
+
+[dependencies]

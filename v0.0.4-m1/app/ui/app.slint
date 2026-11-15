@@ -1,0 +1,115 @@
+import { ListView } from "std-widgets.slint";
+
+export struct FileRow { name: string, info: string, date: string, hidden: bool, is-dir: bool, is-up: bool }
+
+global Theme {
+    in-out property <bool> dark: true;
+    out property <color> bg: dark ? #16101F : #F6F2FC;
+    out property <color> surface: dark ? #201830 : #EDE6F8;
+    out property <color> accent: dark ? #B79CF0 : #6B3FC4;
+    out property <color> text: dark ? #EDE7F7 : #1E1530;
+    out property <color> text2: dark ? #A89BC2 : #6A5C85;
+    out property <color> fab-fg: dark ? #16101F : #FFFFFF;
+    out property <color> press: dark ? #2B2140 : #E2D8F3;
+}
+
+component PillButton inherits Rectangle {
+    in property <string> label;
+    callback clicked;
+    height: 44px;
+    min-width: 160px;
+    border-radius: 22px;
+    background: Theme.accent;
+    Text { text: root.label; color: Theme.fab-fg; font-size: 15px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+    TouchArea { clicked => { root.clicked(); } }
+}
+
+// screen: 0 liste, 1 boş klasör, 2 hata, 3 izin gerekli
+export component MainWindow inherits Window {
+    in property <[FileRow]> rows;
+    in property <string> folder-name;
+    in property <string> path;
+    in property <bool> can-go-up;
+    in property <int> screen;
+    in property <string> message;
+    callback open(int);
+    callback go-up();
+    callback request-permission();
+    callback retry();
+    background: Theme.bg;
+
+    VerticalLayout {
+        Rectangle {
+            height: 92px;
+            background: Theme.surface;
+            HorizontalLayout {
+                padding-top: 30px;
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 8px;
+                Rectangle {
+                    width: 48px;
+                    Text { text: root.can-go-up ? "<" : ""; font-size: 24px; color: Theme.text; horizontal-alignment: center; vertical-alignment: center; }
+                    TouchArea { enabled: root.can-go-up; clicked => { root.go-up(); } }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 1;
+                    Text { text: root.folder-name; font-size: 20px; font-weight: 700; color: Theme.text; overflow: elide; }
+                    Text { text: root.path; font-size: 12px; color: Theme.text2; overflow: elide; }
+                }
+                Rectangle {
+                    width: 64px;
+                    Text { text: "Tema"; color: Theme.accent; horizontal-alignment: center; vertical-alignment: center; }
+                    TouchArea { clicked => { Theme.dark = !Theme.dark; } }
+                }
+            }
+        }
+
+        if root.screen == 0 : ListView {
+            for r[i] in root.rows : Rectangle {
+                height: 68px;
+                opacity: r.hidden ? 0.6 : 1.0;
+                background: ta.pressed ? Theme.press : transparent;
+                HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    spacing: 16px;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 44px;
+                            height: 34px;
+                            border-radius: r.is-dir || r.is-up ? 6px : 4px;
+                            background: r.is-dir || r.is-up ? Theme.accent : Theme.text2;
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        horizontal-stretch: 1;
+                        Text { text: r.name; font-size: 17px; color: Theme.text; overflow: elide; }
+                        Text { text: r.info; font-size: 13px; color: Theme.text2; overflow: elide; }
+                    }
+                    Text { text: r.date; font-size: 13px; color: Theme.text2; vertical-alignment: center; }
+                }
+                ta := TouchArea { clicked => { root.open(i); } }
+            }
+        }
+
+        if root.screen != 0 : VerticalLayout {
+            alignment: center;
+            spacing: 16px;
+            padding: 32px;
+            Text {
+                text: root.screen == 1 ? "Bu klasör boş" : root.screen == 2 ? "Klasör açılamadı" : "Dosyalara erişim izni gerekli";
+                font-size: 20px;
+                font-weight: 700;
+                color: Theme.text;
+                horizontal-alignment: center;
+            }
+            Text { text: root.message; font-size: 14px; color: Theme.text2; wrap: word-wrap; horizontal-alignment: center; }
+            if root.screen == 2 : PillButton { label: "Tekrar dene"; clicked => { root.retry(); } }
+            if root.screen == 3 : PillButton { label: "İzin ver"; clicked => { root.request-permission(); } }
+        }
+    }
+}

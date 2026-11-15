@@ -5,3 +5,4 @@ Rust-powered Android archive/file manager (ZArchiver'dan esinlenildi).
 - `v0.0.1-m0`: Slint UI prototipi (hata: NDK yolu boş)
 - `v0.0.2-m0`: NDK yolu düzeltmesi (hata: Platform 31 yok)
 - `v0.0.3-m0`: Android SDK/NDK/JDK workflow'da kuruluyor, Slint sabitlendi
+- `v0.0.4-m1`: rarchiver-core + gerçek dosya listesi + izin akışı

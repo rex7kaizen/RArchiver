@@ -4,11 +4,11 @@ on:
     inputs:
       version_dir:
         description: "Derlenecek sürüm klasörü"
-        default: "v0.0.3-m0"
+        default: "v0.0.4-m1"
   push:
     branches: [main]
 env:
-  VERSION_DIR: ${{ inputs.version_dir || 'v0.0.3-m0' }}
+  VERSION_DIR: ${{ inputs.version_dir || 'v0.0.4-m1' }}
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -24,6 +24,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: ${{ env.VERSION_DIR }}
+      - name: Çekirdek testleri
+        working-directory: ${{ env.VERSION_DIR }}
+        run: |
+          if [ -d core ]; then cargo test -p rarchiver-core; else echo "core yok, atlandı"; fi
       - name: Android SDK/NDK kur
         run: |
           SDKM="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
@@ -39,6 +43,7 @@ jobs:
           export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/27.2.12479018"
           export ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
           ls "$ANDROID_NDK_ROOT/source.properties"
+          if [ -d app ]; then cd app; fi
           cargo apk build
       - uses: actions/upload-artifact@v4
         with:
