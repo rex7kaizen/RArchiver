@@ -1,0 +1,19 @@
+// kind: 0 dosya, 1 klasör, 2 ".."   glyph: klasör içi simge (0 yok)
+// fclass: 0 diğer 1 arşiv 2 apk 3 resim 4 video 5 ses 6 belge 7 metin
+export struct RowData {
+    name: string,
+    info: string,
+    date: string,
+    hidden: bool,
+    selected: bool,
+    kind: int,
+    glyph: int,
+    fclass: int,
+    label: string,
+}
+
+// check: -1 işaret yok, 0 kapalı, 1 açık
+export struct MenuEntry {
+    label: string,
+    check: int,
+}

@@ -1,0 +1,556 @@
+import { ListView, ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { RowData, MenuEntry } from "types.slint";
+import { IconBack, IconClose, IconSearch, IconList, IconGrid, IconMore, IconPlus, IconPaste, IconCheck, FolderIcon, FileIcon } from "icons.slint";
+
+export { RowData, MenuEntry, Theme }
+
+// ---------- küçük yardımcı bileşenler ----------
+
+component ToolBtn inherits Rectangle {
+    in property <length> cx;      // simgenin merkez x'i (sağdan hesaplanmış)
+    callback clicked;
+    width: 48px;
+    height: 55px;
+    x: root.cx - 24px;
+    @children
+    TouchArea { clicked => { root.clicked(); } }
+}
+
+// ZArchiver tarzı satır: ikon + ad + (öğe sayısı/boyut) + sağda tarih
+component FileRow inherits Rectangle {
+    in property <RowData> item;
+    in property <bool> show-time;
+    in property <bool> dim: false;
+    callback tapped;
+    callback icon-tapped;
+    callback long-pressed;
+    property <bool> long-fired: false;
+    height: 49.5px;
+    background: root.item.selected ? Theme.selected : (ta.pressed ? Theme.press : transparent);
+
+    ta := TouchArea {
+        changed pressed => { if (self.pressed) { root.long-fired = false; } }
+        clicked => {
+            if (root.long-fired) { root.long-fired = false; } else { root.tapped(); }
+        }
+    }
+    Timer {
+        interval: 450ms;
+        running: ta.pressed && !root.long-fired;
+        triggered => { root.long-fired = true; root.long-pressed(); }
+    }
+    if root.item.kind == 1 : FolderIcon { x: 6.2px; y: 6.8px; glyph: root.item.glyph; }
+    if root.item.kind == 2 : FolderIcon { x: 6.2px; y: 6.8px; glyph: 9; }
+    if root.item.kind == 0 : FileIcon { x: 6.2px; y: 6.8px; fclass: root.item.fclass; label: root.item.label; }
+    if root.item.selected : Rectangle {
+        x: 30px; y: 26px; width: 17px; height: 17px; border-radius: 8.5px; background: Theme.accent;
+        IconCheck { x: 2.5px; y: 2.5px; width: 12px; height: 12px; tint: Theme.fab-fg; }
+    }
+    Text {
+        x: 57.2px; y: 6px; width: root.width - 57.2px - 12px;
+        text: root.item.name; color: Theme.text; font-size: 16px; overflow: elide;
+    }
+    Text {
+        x: 57.2px; y: 33px; width: root.width - 57.2px - 84px;
+        text: root.item.info; color: Theme.text2; font-size: 9.5px; overflow: elide;
+    }
+    if root.show-time : Text {
+        x: root.width - 88px; y: 33px; width: 80px;
+        text: root.item.date; color: Theme.text2; font-size: 9.5px; horizontal-alignment: right;
+    }
+    // ikon bölgesine dokunma = seç/bırak
+    TouchArea { x: 0px; y: 0px; width: 54px; height: parent.height; clicked => { root.icon-tapped(); } }
+}
+
+// Izgara hücresi
+component GridCell inherits Rectangle {
+    in property <RowData> item;
+    callback tapped;
+    callback long-pressed;
+    property <bool> long-fired: false;
+    background: root.item.selected ? Theme.selected : (ta.pressed ? Theme.press : transparent);
+    ta := TouchArea {
+        changed pressed => { if (self.pressed) { root.long-fired = false; } }
+        clicked => { if (root.long-fired) { root.long-fired = false; } else { root.tapped(); } }
+    }
+    Timer {
+        interval: 450ms;
+        running: ta.pressed && !root.long-fired;
+        triggered => { root.long-fired = true; root.long-pressed(); }
+    }
+    Rectangle {
+        y: 8px; width: 44px; height: 36px; x: (parent.width - 44px) / 2;
+        if root.item.kind == 1 : FolderIcon { glyph: root.item.glyph; }
+        if root.item.kind == 2 : FolderIcon { glyph: 9; }
+        if root.item.kind == 0 : FileIcon { fclass: root.item.fclass; label: root.item.label; }
+    }
+    Text {
+        x: 4px; y: 50px; width: parent.width - 8px; height: 30px;
+        text: root.item.name; color: Theme.text; font-size: 11px;
+        horizontal-alignment: center; wrap: word-wrap; overflow: elide;
+    }
+}
+
+component DBtn inherits Rectangle {
+    in property <string> label;
+    in property <bool> strong: true;
+    callback clicked;
+    height: 40px;
+    min-width: 72px;
+    Text { x: 12px; text: root.label; color: Theme.accent; font-size: 14px; font-weight: 700; vertical-alignment: center; }
+    TouchArea { clicked => { root.clicked(); } }
+}
+
+component DialogBox inherits Rectangle {
+    in property <string> title;
+    in property <length> dw: 300px;
+    width: root.dw;
+    background: Theme.dialog;
+    border-radius: 4px;
+    drop-shadow-blur: 24px;
+    drop-shadow-color: #00000099;
+    height: vl.preferred-height;
+    TouchArea { } // arka plana tıklamayı yut
+    vl := VerticalLayout {
+        padding: 20px; padding-bottom: 8px; spacing: 12px;
+        Text { text: root.title; color: Theme.text; font-size: 19px; font-weight: 600; overflow: elide; }
+        @children
+    }
+}
+
+component InputBox inherits Rectangle {
+    in-out property <string> value;
+    in property <string> hint;
+    in property <bool> secret: false;
+    in property <bool> autofocus: true;
+    callback accepted;
+    height: 44px;
+    background: Theme.input-bg;
+    border-radius: 4px;
+    ti := TextInput {
+        x: 12px; width: parent.width - 24px; height: parent.height;
+        text <=> root.value;
+        color: Theme.text; font-size: 16px; single-line: true;
+        vertical-alignment: center;
+        input-type: root.secret ? InputType.password : InputType.text;
+        accepted => { root.accepted(); }
+    }
+    if root.value == "" : Text { x: 12px; text: root.hint; color: Theme.text2; font-size: 16px; vertical-alignment: center; height: parent.height; }
+    init => { if (root.autofocus) { ti.focus(); } }
+}
+
+component CheckRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> on;
+    in property <bool> enabled: true;
+    callback toggled;
+    height: 38px;
+    opacity: root.enabled ? 1.0 : 0.4;
+    Rectangle {
+        x: 2px; y: 9px; width: 20px; height: 20px; border-radius: 3px;
+        border-width: 2px; border-color: root.on ? Theme.accent : Theme.text2;
+        background: root.on ? Theme.accent : transparent;
+        if root.on : IconCheck { x: 1px; y: 1px; width: 14px; height: 14px; tint: Theme.fab-fg; }
+    }
+    Text { x: 34px; text: root.label; color: Theme.text; font-size: 15px; vertical-alignment: center; }
+    TouchArea { enabled: root.enabled; clicked => { root.toggled(); } }
+}
+
+component Chip inherits Rectangle {
+    in property <string> label;
+    in property <bool> on;
+    callback clicked;
+    height: 30px;
+    width: t.preferred-width + 24px;
+    border-radius: 15px;
+    background: root.on ? Theme.accent : transparent;
+    border-width: 1px;
+    border-color: root.on ? Theme.accent : Theme.text2;
+    t := Text { x: 12px; text: root.label; color: root.on ? Theme.fab-fg : Theme.text; font-size: 13px; vertical-alignment: center; }
+    TouchArea { clicked => { root.clicked(); } }
+}
+
+// ---------- ana pencere ----------
+
+export component MainWindow inherits Window {
+    preferred-width: 395px;
+    preferred-height: 806px;
+    background: Theme.bg;
+    title: "RArchiver";
+
+    // liste
+    in property <[RowData]> rows;
+    in property <string> folder-name;
+    in property <string> sub-path;
+    in property <bool> grid: false;
+    in property <bool> show-time: true;
+    // 0 normal, 1 boş klasör, 2 hata, 3 izin gerekli
+    in property <int> state: 0;
+    in property <string> state-text;
+    // modlar
+    in property <int> select-count: 0;
+    in property <bool> select-mode: false;
+    in property <bool> paste-mode: false;
+    in property <string> paste-title;
+    in property <bool> search-mode: false;
+    in-out property <string> search-text;
+    in property <bool> searching: false;
+    in property <[bool]> chips: [false, false, false, false, false, false];
+    // yer paylaşımları: 0 yok, 1 menü, 2 metin, 3 onay/mesaj, 4 parola, 5 ilerleme, 6 arşiv, 7 bilgi, 8 çakışma
+    in property <int> overlay: 0;
+    in property <string> overlay-title;
+    in property <string> overlay-message;
+    in property <[MenuEntry]> menu-items;
+    in-out property <string> input-text;
+    in property <string> input-hint;
+    in property <string> ok-label: "TAMAM";
+    in property <bool> show-cancel: true;
+    in property <float> progress-value: 0;
+    in property <string> progress-current;
+    in property <string> progress-text;
+    in property <string> arc-format;
+    in property <string> arc-level;
+    in-out property <string> arc-password;
+    in property <bool> arc-pw-ok: true;
+    in property <bool> arc-names-ok: false;
+    in property <bool> arc-encrypt-names: false;
+    in property <bool> arc-delete: false;
+    in property <bool> arc-separate: false;
+    in property <bool> arc-sep-ok: true;
+    in property <length> inset-top: 0px;
+    in property <length> inset-bottom: 0px;
+
+    callback back();
+    callback location-tapped();
+    callback search-open();
+    callback search-close();
+    callback search-submit();
+    callback chip-toggled(int);
+    callback view-menu();
+    callback more-menu();
+    callback select-all();
+    callback select-exit();
+    callback paste-cancel();
+    callback fab-tapped();
+    callback row-tapped(int);
+    callback row-icon-tapped(int);
+    callback row-long(int);
+    callback retry();
+    callback request-permission();
+    callback menu-picked(int);
+    callback overlay-ok();
+    callback overlay-cancel();
+    callback overlay-extra(int);
+    callback arc-pick-format();
+    callback arc-pick-level();
+    callback arc-toggle-names();
+    callback arc-toggle-delete();
+    callback arc-toggle-separate();
+
+    property <bool> sel-bar: root.select-mode || root.select-count > 0;
+
+    VerticalLayout {
+        Rectangle { height: root.inset-top; background: (root.sel-bar || root.paste-mode) ? Theme.select-bar : Theme.toolbar; }
+        // ---------- araç çubuğu ----------
+        Rectangle {
+            height: 55px;
+            background: (root.sel-bar || root.paste-mode) ? Theme.select-bar : Theme.toolbar;
+            property <color> fg: Theme.toolbar-fg;
+
+            // geri / kapat
+            Rectangle {
+                x: 4.2px; width: 48px; height: 55px;
+                if !(root.sel-bar || root.paste-mode || root.search-mode) : IconBack { x: 12px; y: 14.5px; }
+                if root.search-mode && !(root.sel-bar || root.paste-mode) : IconBack { x: 12px; y: 14.5px; }
+                if root.sel-bar || root.paste-mode : IconClose { x: 12px; y: 14.5px; }
+                TouchArea { clicked => {
+                    if (root.sel-bar) { root.select-exit(); }
+                    else if (root.paste-mode) { root.paste-cancel(); }
+                    else if (root.search-mode) { root.search-close(); }
+                    else { root.back(); }
+                } }
+            }
+
+            // başlık bloğu (klasör adı + üst yol) ve açılır üçgen
+            if !root.search-mode && !root.sel-bar && !root.paste-mode : Rectangle {
+                x: 73px; width: root.width - 73px - 130px; height: 55px;
+                Text { x: 0px; y: 4.9px; width: parent.width; text: root.folder-name; font-size: 20px; font-weight: 500; color: Theme.toolbar-fg; overflow: elide; }
+                Text { x: 0px; y: 31.3px; width: parent.width - 28px; text: root.sub-path; font-size: 16px; color: Theme.toolbar-fg; overflow: elide; }
+                Path {
+                    x: parent.width - 21px; y: 40.3px; width: 9.5px; height: 9.5px; viewbox-width: 10; viewbox-height: 10;
+                    fill: Theme.toolbar-fg; commands: "M10 0 L10 10 L0 10 Z";
+                }
+                TouchArea { clicked => { root.location-tapped(); } }
+            }
+            if root.paste-mode && !root.sel-bar : Rectangle {
+                x: 73px; width: root.width - 73px - 70px; height: 55px;
+                Text { x: 0px; y: 4.9px; width: parent.width; text: root.paste-title; font-size: 20px; font-weight: 500; color: Theme.toolbar-fg; overflow: elide; }
+                Text { x: 0px; y: 31.3px; width: parent.width; text: root.sub-path + "/" + root.folder-name; font-size: 14px; color: Theme.toolbar-fg; overflow: elide; }
+            }
+            if root.sel-bar : Text {
+                x: 73px; height: 55px; text: root.select-count; font-size: 20px; font-weight: 500; color: Theme.toolbar-fg; vertical-alignment: center;
+            }
+            if root.search-mode && !root.sel-bar && !root.paste-mode : Rectangle {
+                x: 60px; width: root.width - 60px - 60px; height: 55px;
+                InputBox {
+                    y: 6px; height: 43px; value <=> root.search-text; hint: "Ara... (*.zip)";
+                    accepted => { root.search-submit(); }
+                }
+            }
+
+            // sağ simgeler (merkezler sağ kenardan: 113.1 / 64.4 / 22)
+            if !root.sel-bar && !root.paste-mode && !root.search-mode : ToolBtn {
+                cx: root.width - 113.1px; clicked => { root.search-open(); }
+                IconSearch { x: 12px; y: 14.5px; }
+            }
+            if root.search-mode && !root.sel-bar && !root.paste-mode : ToolBtn {
+                cx: root.width - 30px; clicked => { root.search-submit(); }
+                IconSearch { x: 12px; y: 14.5px; }
+            }
+            if !root.sel-bar && !root.paste-mode && !root.search-mode : ToolBtn {
+                cx: root.width - 64.4px; clicked => { root.view-menu(); }
+                if !root.grid : IconList { x: 12px; y: 14.5px; }
+                if root.grid : IconGrid { x: 12px; y: 14.5px; }
+            }
+            if !root.search-mode : ToolBtn {
+                cx: root.width - 22px; clicked => { root.more-menu(); }
+                IconMore { x: 12px; y: 14.5px; }
+            }
+            if root.sel-bar : ToolBtn {
+                cx: root.width - 70px; clicked => { root.select-all(); }
+                IconCheck { x: 12px; y: 14.5px; }
+            }
+        }
+
+        // arama çipleri
+        if root.search-mode : Rectangle {
+            height: 44px;
+            background: Theme.bg;
+            HorizontalLayout {
+                padding-left: 10px; padding-top: 7px; spacing: 8px; alignment: start;
+                Chip { label: "Arşiv"; on: root.chips[0]; clicked => { root.chip-toggled(0); } }
+                Chip { label: "APK"; on: root.chips[1]; clicked => { root.chip-toggled(1); } }
+                Chip { label: "Resim"; on: root.chips[2]; clicked => { root.chip-toggled(2); } }
+                Chip { label: "Video"; on: root.chips[3]; clicked => { root.chip-toggled(3); } }
+                Chip { label: "Belge"; on: root.chips[4]; clicked => { root.chip-toggled(4); } }
+                Chip { label: "Ses"; on: root.chips[5]; clicked => { root.chip-toggled(5); } }
+            }
+        }
+        if root.searching : Rectangle { height: 3px; background: Theme.accent; }
+
+        // ---------- içerik ----------
+        Rectangle {
+            vertical-stretch: 1;
+
+            // liste görünümü + ZArchiver tarzı hızlı kaydırma şeridi (sağ kenar)
+            if !root.grid && root.state != 2 && root.state != 3 : listarea := Rectangle {
+                lv := ListView {
+                    x: 0px; y: 0px; width: parent.width; height: parent.height;
+                    vertical-scrollbar-policy: always-off;
+                    for r[i] in root.rows : FileRow {
+                        item: r; show-time: root.show-time;
+                        tapped => { root.row-tapped(i); }
+                        icon-tapped => { root.row-icon-tapped(i); }
+                        long-pressed => { root.row-long(i); }
+                    }
+                }
+                property <length> vh: lv.content-height;
+                property <length> thumb: 48px;
+                if vh > lv.height + 1px : Rectangle {
+                    x: parent.width - 7.7px; y: 0px; width: 7.7px; height: parent.height;
+                    background: Theme.strip;
+                    Rectangle {
+                        x: 0px; width: parent.width; height: listarea.thumb;
+                        y: (-lv.content-y) / max(1px, listarea.vh - lv.height) * (parent.height - self.height);
+                        background: Theme.strip-thumb;
+                    }
+                    TouchArea {
+                        moved => {
+                            lv.content-y = -(max(0.0, min(1.0, (self.mouse-y - listarea.thumb / 2) / max(1px, parent.height - listarea.thumb))) * (listarea.vh - lv.height));
+                        }
+                    }
+                }
+            }
+
+            // ızgara görünümü
+            if root.grid && root.state != 2 && root.state != 3 : Flickable {
+                property <int> cols: max(3, Math.floor(self.width / 92px));
+                property <length> cw: self.width / cols;
+                content-width: self.width;
+                content-height: Math.ceil(root.rows.length / cols) * 88px + 80px;
+                for r[i] in root.rows : GridCell {
+                    item: r;
+                    x: Math.mod(i, parent.cols) * parent.cw;
+                    y: Math.floor(i / parent.cols) * 88px;
+                    width: parent.cw; height: 88px;
+                    tapped => { root.row-tapped(i); }
+                    long-pressed => { root.row-long(i); }
+                }
+            }
+
+            // boş klasör durumu
+            if root.state == 1 : Text {
+                y: 120px; width: parent.width; text: "Bu klasör boş";
+                color: Theme.text2; font-size: 16px; horizontal-alignment: center;
+            }
+            // hata / izin durumu
+            if root.state == 2 || root.state == 3 : VerticalLayout {
+                alignment: center; spacing: 14px; padding: 32px;
+                Text { text: root.state == 3 ? "Dosyalara erişim izni gerekli" : "Klasör açılamadı"; color: Theme.text; font-size: 20px; font-weight: 600; horizontal-alignment: center; }
+                Text { text: root.state-text; color: Theme.text2; font-size: 14px; wrap: word-wrap; horizontal-alignment: center; }
+                Rectangle {
+                    height: 44px; border-radius: 22px; background: Theme.fab;
+                    Text { text: root.state == 3 ? "İzin ver" : "Tekrar dene"; color: Theme.fab-fg; font-size: 15px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                    TouchArea { clicked => { if (root.state == 3) { root.request-permission(); } else { root.retry(); } } }
+                }
+            }
+        }
+    }
+
+    // ---------- FAB (56px, sağdan 22px, alttan 16px) ----------
+    if !root.search-mode && !root.sel-bar && root.state != 3 : Rectangle {
+        x: root.width - 21.6px - 56px; y: root.height - root.inset-bottom - 3.3px - 56px;
+        width: 56px; height: 56px; border-radius: 28px;
+        background: Theme.fab;
+        drop-shadow-blur: 8px; drop-shadow-color: #00000080; drop-shadow-offset-y: 3px;
+        if !root.paste-mode : IconPlus { x: 16px; y: 16px; tint: Theme.fab-fg; }
+        if root.paste-mode : IconPaste { x: 16px; y: 16px; tint: Theme.fab-fg; }
+        TouchArea { clicked => { root.fab-tapped(); } }
+    }
+
+    // ---------- yer paylaşımları ----------
+    if root.overlay != 0 : Rectangle {
+        background: #000000A0;
+        TouchArea { clicked => { root.overlay-cancel(); } }
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                alignment: center;
+
+                // 1: menü (bağlamsal / ⋮ / görünüm / sık kullanılanlar)
+                if root.overlay == 1 : DialogBox {
+                    title: root.overlay-title;
+                    dw: 300px;
+                    Rectangle {
+                        height: min(root.menu-items.length * 46px, root.height - 220px);
+                        ListView {
+                            for m[i] in root.menu-items : Rectangle {
+                                height: 46px;
+                                background: mta.pressed ? Theme.press : transparent;
+                                Text { x: 4px; width: parent.width - 48px; text: m.label; color: Theme.text; font-size: 16px; vertical-alignment: center; overflow: elide; }
+                                if m.check >= 0 : Rectangle {
+                                    x: parent.width - 30px; y: 13px; width: 20px; height: 20px; border-radius: 10px;
+                                    border-width: 2px; border-color: m.check == 1 ? Theme.accent : Theme.text2;
+                                    if m.check == 1 : Rectangle { x: 4px; y: 4px; width: 8px; height: 8px; border-radius: 4px; background: Theme.accent; }
+                                }
+                                mta := TouchArea { clicked => { root.menu-picked(i); } }
+                            }
+                        }
+                    }
+                }
+
+                // 2: metin girişi (yeni klasör / dosya / yeniden adlandır)
+                if root.overlay == 2 : DialogBox {
+                    title: root.overlay-title;
+                    InputBox { value <=> root.input-text; hint: root.input-hint; accepted => { root.overlay-ok(); } }
+                    HorizontalLayout {
+                        alignment: end;
+                        DBtn { label: "İPTAL"; clicked => { root.overlay-cancel(); } }
+                        DBtn { label: root.ok-label; clicked => { root.overlay-ok(); } }
+                    }
+                }
+
+                // 3: onay / mesaj
+                if root.overlay == 3 : DialogBox {
+                    title: root.overlay-title;
+                    Text { text: root.overlay-message; color: Theme.text2; font-size: 15px; wrap: word-wrap; }
+                    HorizontalLayout {
+                        alignment: end;
+                        if root.show-cancel : DBtn { label: "İPTAL"; clicked => { root.overlay-cancel(); } }
+                        DBtn { label: root.ok-label; clicked => { root.overlay-ok(); } }
+                    }
+                }
+
+                // 4: parola
+                if root.overlay == 4 : DialogBox {
+                    title: root.overlay-title;
+                    Text { text: root.overlay-message; color: Theme.text2; font-size: 14px; wrap: word-wrap; }
+                    InputBox { value <=> root.input-text; hint: "Parola"; secret: true; accepted => { root.overlay-ok(); } }
+                    HorizontalLayout {
+                        alignment: end;
+                        DBtn { label: "İPTAL"; clicked => { root.overlay-cancel(); } }
+                        DBtn { label: "TAMAM"; clicked => { root.overlay-ok(); } }
+                    }
+                }
+
+                // 5: ilerleme
+                if root.overlay == 5 : DialogBox {
+                    title: root.overlay-title;
+                    Text { text: root.progress-current; color: Theme.text2; font-size: 14px; overflow: elide; }
+                    Rectangle {
+                        height: 6px; background: Theme.divider; border-radius: 3px;
+                        Rectangle { width: parent.width * root.progress-value; height: parent.height; background: Theme.accent; border-radius: 3px; }
+                    }
+                    Text { text: root.progress-text; color: Theme.text2; font-size: 13px; }
+                    HorizontalLayout {
+                        alignment: end;
+                        DBtn { label: "İPTAL"; clicked => { root.overlay-cancel(); } }
+                    }
+                }
+
+                // 6: arşiv oluştur
+                if root.overlay == 6 : DialogBox {
+                    title: root.overlay-title;
+                    dw: 340px;
+                    InputBox { value <=> root.input-text; hint: "Arşiv adı"; }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Rectangle {
+                            height: 40px; background: Theme.input-bg; border-radius: 4px;
+                            Text { x: 12px; text: "Biçim: " + root.arc-format; color: Theme.text; font-size: 14px; vertical-alignment: center; }
+                            TouchArea { clicked => { root.arc-pick-format(); } }
+                        }
+                        Rectangle {
+                            height: 40px; background: Theme.input-bg; border-radius: 4px;
+                            Text { x: 12px; text: "Düzey: " + root.arc-level; color: Theme.text; font-size: 14px; vertical-alignment: center; }
+                            TouchArea { clicked => { root.arc-pick-level(); } }
+                        }
+                    }
+                    if root.arc-pw-ok : InputBox { value <=> root.arc-password; hint: "Parola (isteğe bağlı)"; secret: true; autofocus: false; }
+                    CheckRow { label: "Dosya adlarını da şifrele"; on: root.arc-encrypt-names; enabled: root.arc-names-ok && root.arc-password != ""; toggled => { root.arc-toggle-names(); } }
+                    CheckRow { label: "Ayrı arşivler oluştur"; on: root.arc-separate; enabled: root.arc-sep-ok; toggled => { root.arc-toggle-separate(); } }
+                    CheckRow { label: "İşlemden sonra kaynakları sil"; on: root.arc-delete; toggled => { root.arc-toggle-delete(); } }
+                    HorizontalLayout {
+                        alignment: end;
+                        DBtn { label: "İPTAL"; clicked => { root.overlay-cancel(); } }
+                        DBtn { label: "TAMAM"; clicked => { root.overlay-ok(); } }
+                    }
+                }
+
+                // 7: bilgi
+                if root.overlay == 7 : DialogBox {
+                    title: root.overlay-title;
+                    Text { text: root.overlay-message; color: Theme.text; font-size: 15px; wrap: word-wrap; }
+                    HorizontalLayout {
+                        alignment: end;
+                        DBtn { label: "TAMAM"; clicked => { root.overlay-ok(); } }
+                    }
+                }
+
+                // 8: çakışma (atla / üzerine yaz / ikisini de tut)
+                if root.overlay == 8 : DialogBox {
+                    title: root.overlay-title;
+                    Text { text: root.overlay-message; color: Theme.text2; font-size: 15px; wrap: word-wrap; }
+                    VerticalLayout {
+                        DBtn { label: "ATLA"; clicked => { root.overlay-extra(0); } }
+                        DBtn { label: "ÜZERİNE YAZ"; clicked => { root.overlay-extra(1); } }
+                        DBtn { label: "İKİSİNİ DE TUT"; clicked => { root.overlay-extra(2); } }
+                        DBtn { label: "İPTAL"; clicked => { root.overlay-cancel(); } }
+                    }
+                }
+
+            }
+        }
+    }
+}

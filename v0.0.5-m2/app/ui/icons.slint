@@ -1,0 +1,95 @@
+import { Theme } from "theme.slint";
+
+component Ic inherits Path {
+    in property <color> tint: Theme.toolbar-fg;
+    width: 24px;
+    height: 24px;
+    viewbox-width: 24;
+    viewbox-height: 24;
+    fill: tint;
+}
+
+export component IconBack inherits Ic { commands: "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"; }
+export component IconClose inherits Ic { commands: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"; }
+export component IconSearch inherits Ic { commands: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"; }
+export component IconList inherits Ic { commands: "M3 7.2h2.6v2.4H3z M7.4 7.2H21v2.4H7.4z M3 10.8h2.6v2.4H3z M7.4 10.8H21v2.4H7.4z M3 14.4h2.6v2.4H3z M7.4 14.4H21v2.4H7.4z"; }
+export component IconGrid inherits Ic { commands: "M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"; }
+export component IconMore inherits Ic { commands: "M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"; }
+export component IconPlus inherits Ic { commands: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"; }
+export component IconPaste inherits Ic { commands: "M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z"; }
+export component IconCheck inherits Ic { commands: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"; }
+
+// Klasör ikonu: ZArchiver'ın gerçek şekli (arka sekme, ön panel, beyaz etiket, alt şerit)
+// 120x98 birimlik çizim, 44x36 px. glyph: 0 yok, 1 alarm, 2 android, 3 kamera, 4 evrak çantası,
+// 5 indir, 6 film, 7 kulaklık, 8 resim, 9 yukarı ok (".." satırı)
+export component FolderIcon inherits Rectangle {
+    in property <int> glyph: 0;
+    width: 44px;
+    height: 36px;
+    Path {
+        width: 100%; height: 100%; viewbox-width: 120; viewbox-height: 98;
+        fill: Theme.folder-back;
+        commands: "M0 8 Q0 0 8 0 L64 0 L69 12 L69 40 L0 40 Z";
+    }
+    Path {
+        width: 100%; height: 100%; viewbox-width: 120; viewbox-height: 98;
+        fill: Theme.folder-front;
+        commands: "M0 23 L56 23 L61 12 Q62 11 65 11 L112 11 Q120 11 120 19 L120 98 L0 98 Z";
+    }
+    Path {
+        width: 100%; height: 100%; viewbox-width: 120; viewbox-height: 98;
+        fill: Theme.folder-bottom;
+        commands: "M0 93 L120 93 L120 98 L0 98 Z";
+    }
+    Path {
+        width: 100%; height: 100%; viewbox-width: 120; viewbox-height: 98;
+        fill: Theme.slit;
+        commands: "M9 15 L60 15 L57 23 L9 23 Z";
+    }
+    if root.glyph == 9 : Path {
+        width: 100%; height: 100%; viewbox-width: 120; viewbox-height: 98;
+        fill: Theme.up-arrow;
+        commands: "M79.5 17 L112 46 L91 46 L91 82 L70 82 L70 46 L48 46 Z";
+    }
+    // 61,38 noktasından başlayan 46x46 kutu (≈ 22.4px, 13.9px; 16.8px boyut)
+    if root.glyph == 1 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85zM12.5 8H11v6l4.75 2.85.75-1.23-4-2.37V8zM12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"; }
+    if root.glyph == 2 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.85 1.23 12.95 1 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31C6.97 3.26 6 5.01 6 7h12c0-1.99-.97-3.75-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"; }
+    if root.glyph == 3 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"; }
+    if root.glyph == 4 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"; }
+    if root.glyph == 5 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"; }
+    if root.glyph == 6 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"; }
+    if root.glyph == 7 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"; }
+    if root.glyph == 8 : Path { x: 22.3px; y: 13.9px; width: 16.8px; height: 16.8px; viewbox-width: 24; viewbox-height: 24; fill: white;
+        commands: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"; }
+}
+
+// Dosya ikonu: sayfa + katlanmış köşe + türe göre renkli etiket
+export component FileIcon inherits Rectangle {
+    in property <int> fclass: 0;
+    in property <string> label: "";
+    width: 44px;
+    height: 36px;
+    property <color> band: [#78909C, #FB8C00, #7CB342, #26A69A, #EF5350, #AB47BC, #42A5F5, #8D9AA5][fclass];
+    Path {
+        x: 9px; width: 26px; height: 100%; viewbox-width: 26; viewbox-height: 36;
+        fill: #ECEFF1;
+        commands: "M2 0 L18 0 L26 8 L26 34 Q26 36 24 36 L2 36 Q0 36 0 34 L0 2 Q0 0 2 0 Z";
+    }
+    Path {
+        x: 9px; width: 26px; height: 100%; viewbox-width: 26; viewbox-height: 36;
+        fill: #B0BEC5;
+        commands: "M18 0 L26 8 L20 8 Q18 8 18 6 Z";
+    }
+    Rectangle {
+        x: 9px; y: 21px; width: 26px; height: 11px;
+        background: root.band;
+        Text { text: root.label; color: white; font-size: 7px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+    }
+}

@@ -1,0 +1,12 @@
+[package]
+name = "rarchiver-core"
+version = "0.0.5"
+edition = "2021"
+
+[dependencies]
+bzip2 = "0.6.1"
+flate2 = "1.1.11"
+lzma-rust2 = "0.25.0"
+sevenz-rust2 = { version = "0.25.0", default-features = false, features = ["compress", "aes256"] }
+tar = "0.4.46"
+zip = { version = "9.5.1", default-features = false, features = ["deflate", "aes-crypto"] }

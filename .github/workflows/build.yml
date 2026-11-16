@@ -4,11 +4,11 @@ on:
     inputs:
       version_dir:
         description: "Derlenecek sürüm klasörü"
-        default: "v0.0.4-m1"
+        default: "v0.0.5-m2"
   push:
     branches: [main]
 env:
-  VERSION_DIR: ${{ inputs.version_dir || 'v0.0.4-m1' }}
+  VERSION_DIR: ${{ inputs.version_dir || 'v0.0.5-m2' }}
 jobs:
   apk:
     runs-on: ubuntu-latest
